@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import {
   Card,
@@ -8,32 +9,41 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { getSession } from "@/lib/auth/session";
+import { AUTH_SIGN_IN_PATH } from "@/lib/auth/constants";
 
 export const metadata: Metadata = {
   title: "Dashboard",
   description: "Application dashboard",
 };
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const session = await getSession();
+  if (!session) {
+    redirect(AUTH_SIGN_IN_PATH);
+  }
+
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-16 sm:px-6">
       <div className="space-y-1">
         <h1 className="font-heading text-lg font-medium">Dashboard</h1>
         <p className="text-xs/relaxed text-muted-foreground">
-          Overview and key metrics for your workspace.
+          Signed in as <span className="text-foreground">{session.email}</span>
         </p>
       </div>
       <Card>
         <CardHeader>
           <CardTitle>Welcome</CardTitle>
           <CardDescription>
-            Replace this with charts, tables, and widgets as you build out the
-            app.
+            Your workspace overview. Build charts and widgets here.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-xs/relaxed text-muted-foreground">
-            <Link className="text-foreground underline underline-offset-4" href="/">
+            <Link
+              className="text-foreground underline underline-offset-4"
+              href="/"
+            >
               Back to home
             </Link>
           </p>
