@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
 
 import { AppNavbarLink } from "@/components/app-navbar-link";
 import { AuthMenu } from "@/components/auth/auth-menu";
+import { useAuthUser } from "@/hooks/use-auth-user";
 
 const navLinkClass =
   "text-xs/relaxed text-muted-foreground transition-colors hover:text-foreground aria-[current=page]:text-foreground";
@@ -28,7 +31,9 @@ const AUTHED_NAV_ITEMS: NavItem[] = [
 
 const ANON_NAV_ITEMS: NavItem[] = [{ href: "/sign-in", label: "Sign in" }];
 
-export function AppNavbar({ user }: AppNavbarProps) {
+export function AppNavbar({ user: initialUser }: AppNavbarProps) {
+  const { data } = useAuthUser({ user: initialUser });
+  const user = data?.user ?? null;
   const navItems = user ? AUTHED_NAV_ITEMS : ANON_NAV_ITEMS;
 
   return (
