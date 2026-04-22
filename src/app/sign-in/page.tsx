@@ -5,19 +5,29 @@ import { SignInForm } from "@/components/auth/sign-in-form";
 
 export const metadata: Metadata = {
   title: "Sign in",
-  description: "Sign in to your account",
+  description: "Sign in to your User Tracker account.",
+  alternates: { canonical: "/sign-in" },
 };
 
 export default function SignInPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-16 text-sm text-muted-foreground">
-          Loading sign-in…
-        </div>
-      }
+    <main
+      id="main-content"
+      className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-16"
     >
-      <SignInForm />
-    </Suspense>
+      <Suspense
+        fallback={
+          <p
+            className="text-sm text-muted-foreground"
+            role="status"
+            aria-live="polite"
+          >
+            Loading sign-in…
+          </p>
+        }
+      >
+        <SignInForm />
+      </Suspense>
+    </main>
   );
 }

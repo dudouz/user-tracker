@@ -27,8 +27,16 @@ export function SignOutButton() {
         variant="ghost"
         className="h-auto p-0 text-xs/relaxed"
         disabled={pending}
+        aria-busy={pending}
       >
-        {pending ? "…" : "Log out"}
+        {pending ? (
+          <>
+            <span aria-hidden>…</span>
+            <span className="sr-only">Signing out, please wait</span>
+          </>
+        ) : (
+          "Log out"
+        )}
       </Button>
     </form>
   );

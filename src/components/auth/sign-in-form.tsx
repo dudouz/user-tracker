@@ -33,73 +33,92 @@ export function SignInForm() {
   const pending = isSubmitting;
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-16">
-      <Card>
-        <CardHeader>
-          <CardTitle>Sign in</CardTitle>
-          <CardDescription>
-            Use your email and password to access your account.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <form
-            className="space-y-4"
-            onSubmit={handleSubmit(async (data) => {
-              await signIn.mutateAsync(data);
-            })}
-            noValidate
-          >
-            {errors.root?.message && (
-              <p className="text-xs text-destructive" role="alert">
-                {errors.root.message}
+    <Card>
+      <CardHeader>
+        <CardTitle as="h1">Sign in</CardTitle>
+        <CardDescription>
+          Use your email and password to access your account.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <form
+          className="space-y-4"
+          onSubmit={handleSubmit(async (data) => {
+            await signIn.mutateAsync(data);
+          })}
+          noValidate
+        >
+          {errors.root?.message && (
+            <p className="text-xs text-destructive" role="alert">
+              {errors.root.message}
+            </p>
+          )}
+          <div className="space-y-2">
+            <Label htmlFor="sign-in-email">Email</Label>
+            <Input
+              id="sign-in-email"
+              type="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              aria-invalid={errors.email ? true : undefined}
+              aria-describedby={errors.email ? "sign-in-email-error" : undefined}
+              {...register("email")}
+            />
+            {errors.email && (
+              <p id="sign-in-email-error" className="text-xs text-destructive">
+                {String(errors.email.message)}
               </p>
             )}
-            <div className="space-y-2">
-              <Label htmlFor="sign-in-email">Email</Label>
-              <Input
-                id="sign-in-email"
-                type="email"
-                autoComplete="email"
-                placeholder="you@example.com"
-                aria-invalid={errors.email ? true : undefined}
-                {...register("email")}
-              />
-              {errors.email && (
-                <p className="text-xs text-destructive">{String(errors.email.message)}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="sign-in-password">Password</Label>
-              <Input
-                id="sign-in-password"
-                type="password"
-                autoComplete="current-password"
-                aria-invalid={errors.password ? true : undefined}
-                {...register("password")}
-              />
-              {errors.password && (
-                <p className="text-xs text-destructive">
-                  {String(errors.password.message)}
-                </p>
-              )}
-            </div>
-            <Button className="w-full" type="submit" disabled={pending}>
-              {pending ? "Signing in…" : "Sign in"}
-            </Button>
-          </form>
-        </CardContent>
-        <CardFooter className="text-muted-foreground">
-          <p className="text-xs/relaxed">
-            No account?{" "}
-            <Link
-              className="text-foreground underline underline-offset-4"
-              href="/sign-up"
-            >
-              Sign up
-            </Link>
-          </p>
-        </CardFooter>
-      </Card>
-    </main>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="sign-in-password">Password</Label>
+            <Input
+              id="sign-in-password"
+              type="password"
+              autoComplete="current-password"
+              aria-invalid={errors.password ? true : undefined}
+              aria-describedby={
+                errors.password ? "sign-in-password-error" : undefined
+              }
+              {...register("password")}
+            />
+            {errors.password && (
+              <p
+                id="sign-in-password-error"
+                className="text-xs text-destructive"
+              >
+                {String(errors.password.message)}
+              </p>
+            )}
+          </div>
+          <Button
+            className="w-full"
+            type="submit"
+            disabled={pending}
+            aria-busy={pending}
+          >
+            {pending ? (
+              <>
+                <span aria-hidden>Signing in…</span>
+                <span className="sr-only">Signing in, please wait</span>
+              </>
+            ) : (
+              "Sign in"
+            )}
+          </Button>
+        </form>
+      </CardContent>
+      <CardFooter className="text-muted-foreground">
+        <p className="text-xs/relaxed">
+          No account?{" "}
+          <Link
+            className="text-foreground underline underline-offset-4"
+            href="/sign-up"
+          >
+            Sign up
+          </Link>
+        </p>
+      </CardFooter>
+    </Card>
   );
 }

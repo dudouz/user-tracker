@@ -69,13 +69,13 @@ export function InviteFriendsPanel({
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <Label>Your invite link</Label>
+        <Label htmlFor="invite-link">Your invite link</Label>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
           <Input
+            id="invite-link"
             readOnly
             value={inviteUrl}
             className="font-mono text-xs"
-            aria-label="Invite link"
           />
           <Button
             type="button"
@@ -84,6 +84,7 @@ export function InviteFriendsPanel({
             onClick={() => {
               void copy(inviteUrl, "link");
             }}
+            aria-label="Copy invite link"
           >
             Copy link
           </Button>
@@ -97,7 +98,6 @@ export function InviteFriendsPanel({
             readOnly
             value={referralCode}
             className="font-mono"
-            aria-label="Invite code"
           />
           <Button
             type="button"
@@ -106,6 +106,7 @@ export function InviteFriendsPanel({
             onClick={() => {
               void copy(referralCode, "code");
             }}
+            aria-label="Copy invite code"
           >
             Copy code
           </Button>
@@ -134,8 +135,16 @@ export function InviteFriendsPanel({
             className="shrink-0 sm:min-w-28"
             type="submit"
             disabled={sending}
+            aria-busy={sending}
           >
-            {sending ? "Sending…" : "Send email"}
+            {sending ? (
+              <>
+                <span aria-hidden>Sending…</span>
+                <span className="sr-only">Sending invite, please wait</span>
+              </>
+            ) : (
+              "Send email"
+            )}
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">

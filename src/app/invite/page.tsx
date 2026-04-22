@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
 import { eq } from "drizzle-orm";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -20,7 +20,7 @@ import { users } from "@/lib/db/schema";
 
 export const metadata: Metadata = {
   title: "Invite friends",
-  description: "Share your invite link or code",
+  description: "Share your User Tracker invite link or code.",
 };
 
 export default async function InvitePage() {
@@ -42,10 +42,13 @@ export default async function InvitePage() {
   const baseUrl = getAppBaseUrl();
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-16">
+    <main
+      id="main-content"
+      className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-16"
+    >
       <Card>
         <CardHeader>
-          <CardTitle>Invite friends</CardTitle>
+          <CardTitle as="h1">Invite friends</CardTitle>
           <CardDescription>
             Share the link or code so others can sign up with your referral.
           </CardDescription>

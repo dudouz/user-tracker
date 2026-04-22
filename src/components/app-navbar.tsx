@@ -1,12 +1,10 @@
-"use client";
-
 import Link from "next/link";
 
-import { SignOutButton } from "@/components/auth/sign-out-button";
-import { useAuthUser } from "@/hooks/use-auth-user";
+import { AppNavbarLink } from "@/components/app-navbar-link";
+import { AuthMenu } from "@/components/auth/auth-menu";
 
 const navLinkClass =
-  "text-xs/relaxed text-muted-foreground transition-colors hover:text-foreground";
+  "text-xs/relaxed text-muted-foreground transition-colors hover:text-foreground aria-[current=page]:text-foreground";
 
 export interface AppNavbarUser {
   id: string;
@@ -17,9 +15,20 @@ interface AppNavbarProps {
   user: AppNavbarUser | null;
 }
 
-export function AppNavbar({ user: initialUser }: AppNavbarProps) {
-  const { data } = useAuthUser({ user: initialUser });
-  const user = data?.user ?? null;
+interface NavItem {
+  href: string;
+  label: string;
+}
+
+const AUTHED_NAV_ITEMS: NavItem[] = [
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/invite", label: "Invite" },
+];
+
+const ANON_NAV_ITEMS: NavItem[] = [{ href: "/sign-in", label: "Sign in" }];
+
+export function AppNavbar({ user }: AppNavbarProps) {
+  const navItems = user ? AUTHED_NAV_ITEMS : ANON_NAV_ITEMS;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-foreground/10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
@@ -27,45 +36,24 @@ export function AppNavbar({ user: initialUser }: AppNavbarProps) {
         <Link
           className="font-heading text-sm font-medium text-foreground"
           href="/"
+          aria-label="User Tracker, go to home"
         >
           User Tracker
         </Link>
-        <nav aria-label="Main">
+        <nav aria-label="Primary">
           <ul className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 sm:gap-x-6">
-            {user && (
-              <>
-                <li>
-                  <Link className={navLinkClass} href="/dashboard">
-                    Dashboard
-                  </Link>
-                </li>
-                <li>
-                  <Link className={navLinkClass} href="/invite">
-                    Invite
-                  </Link>
-                </li>
-                <li>
-                  <span
-                    className="max-w-[10rem] truncate text-xs/relaxed text-muted-foreground"
-                    title={user.email}
-                  >
-                    {user.email}
-                  </span>
-                </li>
-                <li>
-                  <SignOutButton />
-                </li>
-              </>
-            )}
-            {!user && (
-              <li>
-                <Link className={navLinkClass} href="/sign-in">
-                  Sign in
-                </Link>
+            {navItems.map((item) => (
+              <li key={item.href}>
+                <AppNavbarLink
+                  href={item.href}
+                  label={item.label}
+                  className={navLinkClass}
+                />
               </li>
-            )}
+            ))}
           </ul>
         </nav>
+        {user && <AuthMenu initialUser={user} />}
       </div>
     </header>
   );

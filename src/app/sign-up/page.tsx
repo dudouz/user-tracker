@@ -5,19 +5,29 @@ import { SignUpForm } from "@/components/auth/sign-up-form";
 
 export const metadata: Metadata = {
   title: "Sign up",
-  description: "Create a new account",
+  description: "Create a User Tracker account.",
+  alternates: { canonical: "/sign-up" },
 };
 
 export default function SignUpPage() {
   return (
-    <Suspense
-      fallback={
-        <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-16 text-sm text-muted-foreground">
-          Loading sign up…
-        </main>
-      }
+    <main
+      id="main-content"
+      className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-16"
     >
-      <SignUpForm />
-    </Suspense>
+      <Suspense
+        fallback={
+          <p
+            className="text-sm text-muted-foreground"
+            role="status"
+            aria-live="polite"
+          >
+            Loading sign up…
+          </p>
+        }
+      >
+        <SignUpForm />
+      </Suspense>
+    </main>
   );
 }

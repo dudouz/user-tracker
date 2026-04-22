@@ -33,9 +33,15 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
+type CardTitleHeading = "h1" | "h2" | "h3" | "h4" | "h5" | "h6"
+
+type CardTitleProps = React.HTMLAttributes<HTMLElement> & {
+  as?: CardTitleHeading | "div"
+}
+
+function CardTitle({ as: Tag = "h2", className, ...props }: CardTitleProps) {
   return (
-    <div
+    <Tag
       data-slot="card-title"
       className={cn(
         "font-heading text-sm font-medium group-data-[size=sm]/card:text-sm",
@@ -46,9 +52,12 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
+function CardDescription({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
-    <div
+    <p
       data-slot="card-description"
       className={cn("text-xs/relaxed text-muted-foreground", className)}
       {...props}
