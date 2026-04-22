@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { useForm, useWatch, type Resolver } from "react-hook-form";
+import { useForm, useWatch, type FieldPath, type Resolver } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -18,7 +18,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSignUpMutation } from "@/hooks/auth-mutations";
+import { getSignupWizardStepMeta } from "@/lib/events/signup-wizard";
+import { trackClientEvent } from "@/lib/events/track-client";
+import type {
+  SignupStep,
+  SignupWizardAdvanceStepKey,
+  SignupWizardStepContext,
+} from "@/lib/events/types";
 import { signUpSchema, type SignUpFieldValues, type SignUpInput } from "@/lib/validations/auth";
+
+const REF_OPENED_KEY = "analytics:referral_link_opened";
 
 const STEP_FIELDS = {
   1: ["name", "email", "password", "referrerCode"] as const,
@@ -32,6 +41,11 @@ function parseRefParam(raw: string | null): string {
     return t.toLowerCase();
   }
   return "";
+}
+
+function wizardStepContext(n: SignupStep): SignupWizardStepContext {
+  const m = getSignupWizardStepMeta(n);
+  return { step_key: m.key, step_label: m.label };
 }
 
 export function SignUpForm() {
@@ -49,6 +63,8 @@ export function SignUpForm() {
     setError,
     setValue,
     trigger,
+    getFieldState,
+    formState,
     formState: { errors, isSubmitting },
   } = useForm<SignUpFieldValues, unknown, SignUpInput>({
     resolver: zodResolver(signUpSchema) as Resolver<SignUpFieldValues, unknown, SignUpInput>,
@@ -69,26 +85,75 @@ export function SignUpForm() {
     }
   }, [refFromQuery, setValue]);
 
+  useEffect(() => {
+    trackClientEvent({
+      name: "signup_step_viewed",
+      properties: wizardStepContext(step as SignupStep),
+    });
+  }, [step]);
+
+  useEffect(() => {
+    if (!refFromQuery || typeof sessionStorage === "undefined") return;
+    if (sessionStorage.getItem(REF_OPENED_KEY) === "1") return;
+    sessionStorage.setItem(REF_OPENED_KEY, "1");
+    trackClientEvent({
+      name: "referral_link_opened",
+      properties: { ref_present: true },
+    });
+  }, [refFromQuery]);
+
   const signUp = useSignUpMutation(setError);
 
   async function goNext() {
     const names = STEP_FIELDS[step as 1 | 2];
     if (!names) return;
-    const ok = await trigger([...names], { shouldFocus: true });
-    if (ok) setStep((s) => Math.min(3, s + 1));
+    const currentStep = step as SignupStep;
+    const ok = await trigger([...names] as FieldPath<SignUpFieldValues>[], {
+      shouldFocus: true,
+    });
+    if (ok) {
+      const completed = wizardStepContext(currentStep);
+      trackClientEvent({
+        name: "signup_step_completed",
+        properties: {
+          step_key: completed.step_key as SignupWizardAdvanceStepKey,
+          step_label: completed.step_label,
+        },
+      });
+      setStep((s) => Math.min(3, s + 1));
+      return;
+    }
+    const fields = names.filter((n) =>
+      getFieldState(n, formState).invalid,
+    ) as string[];
+    trackClientEvent({
+      name: "signup_validation_error",
+      properties: { ...wizardStepContext(currentStep), fields },
+    });
   }
 
   function goBack() {
     setStep((s) => Math.max(1, s - 1));
   }
 
-  const onSubmit = handleSubmit(async (data) => {
-    if (step === 1 || step === 2) {
-      await goNext();
-      return;
-    }
-    await signUp.mutateAsync(data);
-  });
+  const onSubmit = handleSubmit(
+    async (data) => {
+      if (step === 1 || step === 2) {
+        await goNext();
+        return;
+      }
+      await signUp.mutateAsync(data);
+    },
+    (formErrors) => {
+      if (step === 3) {
+        const fields = Object.keys(formErrors) as string[];
+        trackClientEvent({
+          name: "signup_validation_error",
+          properties: { ...wizardStepContext(3), fields },
+        });
+      }
+    },
+  );
 
   const pending = isSubmitting;
   const hasReferrerPreview =
@@ -222,6 +287,8 @@ export function SignUpForm() {
                   onClick={() => {
                     void goNext();
                   }}
+                  data-analytics="signup_wizard:account:next"
+                  aria-label="Sign up wizard: go to location step"
                 >
                   Next
                 </Button>
@@ -262,6 +329,8 @@ export function SignUpForm() {
                     type="button"
                     variant="outline"
                     onClick={goBack}
+                    data-analytics="signup_wizard:location_interest:back"
+                    aria-label="Sign up wizard: back to account step"
                   >
                     Back
                   </Button>
@@ -271,6 +340,8 @@ export function SignUpForm() {
                     onClick={() => {
                       void goNext();
                     }}
+                    data-analytics="signup_wizard:location_interest:next"
+                    aria-label="Sign up wizard: go to review step"
                   >
                     Next
                   </Button>
@@ -328,6 +399,8 @@ export function SignUpForm() {
                     variant="outline"
                     onClick={goBack}
                     disabled={pending}
+                    data-analytics="signup_wizard:confirm:back"
+                    aria-label="Sign up wizard: back to location step"
                   >
                     Back
                   </Button>
@@ -335,6 +408,8 @@ export function SignUpForm() {
                     className="order-1 sm:order-2 sm:min-w-[7rem]"
                     type="submit"
                     disabled={pending}
+                    data-analytics="signup_wizard:confirm:submit"
+                    aria-label="Sign up wizard: create account"
                   >
                     {pending ? "Creating account…" : "Create account"}
                   </Button>

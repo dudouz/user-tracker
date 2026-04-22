@@ -4,6 +4,8 @@ import { Toaster } from "sonner";
 
 import "./globals.css";
 import { AppNavbar } from "@/components/app-navbar";
+import { AppPostHogProvider } from "@/components/providers/posthog-provider";
+import { PostHogUserSync } from "@/components/providers/posthog-user-sync";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { getSession } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
@@ -48,10 +50,13 @@ export default async function RootLayout({
       )}
     >
       <body className="flex min-h-full flex-col">
-        <QueryProvider>
-          <AppNavbar user={user} />
-          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
-        </QueryProvider>
+        <AppPostHogProvider>
+          <QueryProvider>
+            <PostHogUserSync userId={user?.id ?? null} />
+            <AppNavbar user={user} />
+            <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+          </QueryProvider>
+        </AppPostHogProvider>
         <Toaster richColors position="top-center" />
       </body>
     </html>

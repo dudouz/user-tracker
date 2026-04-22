@@ -12,6 +12,8 @@ import {
   postSignUp,
 } from "@/lib/api/auth-client";
 import { authKeys } from "@/lib/api/auth-queries";
+import { trackClientEvent } from "@/lib/events/track-client";
+import { identifyPostHogUser, resetPostHogUser } from "@/lib/posthog/identify-user";
 import { getSafeCallbackUrl } from "@/lib/safe-callback";
 import type { SignInInput, SignUpFieldValues, SignUpInput } from "@/lib/validations/auth";
 
@@ -43,7 +45,12 @@ export function useSignInMutation(setError: UseFormSetError<SignInInput>) {
   const invalidate = useInvalidateMeAndRefresh();
   return useMutation({
     mutationFn: (input: SignInInput) => postSignIn(input),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      identifyPostHogUser(data.user.id);
+      trackClientEvent({
+        name: "sign_in_completed",
+        properties: { method: "password" },
+      });
       invalidate();
       const next = getSafeCallbackUrl(
         searchParams.get("callbackUrl"),
@@ -62,7 +69,8 @@ export function useSignUpMutation(setError: UseFormSetError<SignUpFieldValues>) 
   const invalidate = useInvalidateMeAndRefresh();
   return useMutation({
     mutationFn: (input: SignUpInput) => postSignUp(input),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      identifyPostHogUser(data.user.id);
       invalidate();
       router.push("/dashboard");
     },
@@ -78,6 +86,7 @@ export function useSignOutMutation() {
   return useMutation({
     mutationFn: postSignOut,
     onSuccess: () => {
+      resetPostHogUser();
       void queryClient.invalidateQueries({ queryKey: authKeys.me() });
       router.push("/");
       router.refresh();

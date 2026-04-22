@@ -9,7 +9,10 @@ const testUser = {
   passwordHash: hashSync("password12", 4),
 };
 
-const { limit } = vi.hoisted(() => ({ limit: vi.fn() }));
+const { limit, updateReturning } = vi.hoisted(() => ({
+  limit: vi.fn(),
+  updateReturning: vi.fn().mockResolvedValue([]),
+}));
 
 vi.mock("@/lib/auth/cookie-store", () => ({
   setSessionTokenInCookies: vi.fn().mockResolvedValue(undefined),
@@ -21,6 +24,13 @@ vi.mock("@/lib/db", () => ({
       from: () => ({
         where: () => ({
           limit: () => limit(),
+        }),
+      }),
+    }),
+    update: () => ({
+      set: () => ({
+        where: () => ({
+          returning: () => updateReturning(),
         }),
       }),
     }),
@@ -40,6 +50,8 @@ function postSignInJson(body: unknown) {
 describe("POST /api/auth/sign-in", () => {
   beforeEach(() => {
     limit.mockReset();
+    updateReturning.mockReset();
+    updateReturning.mockResolvedValue([]);
   });
 
   it("returns 400 for invalid body", async () => {

@@ -1,11 +1,12 @@
 import { compare } from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 import { createSessionToken } from "@/lib/auth/jwt";
 import { setSessionTokenInCookies } from "@/lib/auth/cookie-store";
+import { trackUserActivated } from "@/lib/events/track-server";
 import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
+import { referrals, users } from "@/lib/db/schema";
 import { signInSchema } from "@/lib/validations/auth";
 
 export async function POST(request: Request) {
@@ -42,5 +43,25 @@ export async function POST(request: Request) {
   }
   const token = await createSessionToken(user.id, user.email);
   await setSessionTokenInCookies(token);
+
+  const activated = await db
+    .update(referrals)
+    .set({ status: "activated" })
+    .where(
+      and(
+        eq(referrals.referredUserId, user.id),
+        eq(referrals.status, "signup_completed"),
+      ),
+    )
+    .returning({ id: referrals.id });
+
+  for (const row of activated) {
+    try {
+      await trackUserActivated(user.id, row.id);
+    } catch {
+      // Non-fatal if analytics fails
+    }
+  }
+
   return NextResponse.json({ user: { id: user.id, email: user.email } });
 }
