@@ -1,6 +1,8 @@
 /**
- * Public base URL for links (invite emails, copy-link). Set NEXT_PUBLIC_APP_URL
- * in production; falls back to Vercel or localhost in dev.
+ * Public base URL for invite copy-link, emails, and sign-up `?ref=` links.
+ *
+ * Set `NEXT_PUBLIC_APP_URL` in production (e.g. `https://yourdomain.com`).
+ * If unset: uses `https://${VERCEL_URL}` on Vercel, otherwise `http://localhost:3000`.
  */
 export function getAppBaseUrl(): string {
   const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim();
