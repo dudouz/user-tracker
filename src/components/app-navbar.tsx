@@ -22,6 +22,7 @@ interface NavItem {
 
 const AUTHED_NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/insights", label: "Insights" },
   { href: "/invite", label: "Invite" },
 ];
 

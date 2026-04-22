@@ -46,3 +46,6 @@ next-env.d.ts
 
 # docs / 
 .cursor/plans/
+
+# Arcade MCP Gateway OAuth tokens — app-level token storage (see docs)
+.arcade-auth/
