@@ -114,6 +114,9 @@ importers:
       jsdom:
         specifier: ^29.0.2
         version: 29.0.2(@noble/hashes@1.8.0)
+      msw:
+        specifier: ^2.13.4
+        version: 2.13.4(@types/node@20.19.39)(typescript@5.9.3)
       playwright:
         specifier: ^1.59.1
         version: 1.59.1
