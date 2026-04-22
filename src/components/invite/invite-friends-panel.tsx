@@ -1,0 +1,148 @@
+"use client";
+
+import type { FormEvent } from "react";
+import { useState } from "react";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  InviteRequestError,
+  postInviteSendEmail,
+} from "@/lib/api/invite-client";
+
+export interface InviteFriendsPanelProps {
+  baseUrl: string;
+  referralCode: string;
+}
+
+export function InviteFriendsPanel({
+  baseUrl,
+  referralCode,
+}: InviteFriendsPanelProps) {
+  const [email, setEmail] = useState("");
+  const [sending, setSending] = useState(false);
+  const inviteUrl = (() => {
+    try {
+      const u = new URL("/sign-up", baseUrl);
+      u.searchParams.set("ref", referralCode);
+      return u.toString();
+    } catch {
+      return `${baseUrl.replace(/\/$/, "")}/sign-up?ref=${encodeURIComponent(referralCode)}`;
+    }
+  })();
+
+  async function copy(text: string, label: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(`Copied ${label}`);
+    } catch {
+      toast.error("Could not copy");
+    }
+  }
+
+  async function sendEmail(e: FormEvent) {
+    e.preventDefault();
+    if (!email.trim()) {
+      toast.error("Enter a recipient email");
+      return;
+    }
+    setSending(true);
+    try {
+      await postInviteSendEmail({ to: email.trim() });
+      toast.success("Invite sent");
+      setEmail("");
+    } catch (err) {
+      const message =
+        err instanceof InviteRequestError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Failed to send";
+      toast.error(message);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <Label>Your invite link</Label>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+          <Input
+            readOnly
+            value={inviteUrl}
+            className="font-mono text-xs"
+            aria-label="Invite link"
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            className="shrink-0 sm:min-w-28"
+            onClick={() => {
+              void copy(inviteUrl, "link");
+            }}
+          >
+            Copy link
+          </Button>
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="invite-code">Your invite code</Label>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+          <Input
+            id="invite-code"
+            readOnly
+            value={referralCode}
+            className="font-mono"
+            aria-label="Invite code"
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            className="shrink-0 sm:min-w-28"
+            onClick={() => {
+              void copy(referralCode, "code");
+            }}
+          >
+            Copy code
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Friends can paste this 16-character code on the sign-up form, or use
+          the link above.
+        </p>
+      </div>
+      <form className="space-y-2" onSubmit={sendEmail}>
+        <Label htmlFor="invite-email">Email invite to a friend (optional)</Label>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+          <Input
+            id="invite-email"
+            type="email"
+            name="to"
+            autoComplete="off"
+            placeholder="friend@example.com"
+            value={email}
+            onChange={(ev) => {
+              setEmail(ev.target.value);
+            }}
+            disabled={sending}
+          />
+          <Button
+            className="shrink-0 sm:min-w-28"
+            type="submit"
+            disabled={sending}
+          >
+            {sending ? "Sending…" : "Send email"}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Uses Resend when <code className="font-mono">RESEND_API_KEY</code> is
+          set. Otherwise the send action shows an error from the server.
+        </p>
+      </form>
+    </div>
+  );
+}

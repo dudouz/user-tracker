@@ -2,8 +2,9 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useForm, useWatch, type Resolver } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,33 +18,56 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSignUpMutation } from "@/hooks/auth-mutations";
-import { signUpSchema, type SignUpInput } from "@/lib/validations/auth";
+import { signUpSchema, type SignUpFieldValues, type SignUpInput } from "@/lib/validations/auth";
 
 const STEP_FIELDS = {
-  1: ["name", "email", "password"] as const,
+  1: ["name", "email", "password", "referrerCode"] as const,
   2: ["location", "interestedInCommenting"] as const,
-} satisfies Record<number, ReadonlyArray<keyof SignUpInput>>;
+} satisfies Record<number, ReadonlyArray<keyof SignUpFieldValues>>;
+
+function parseRefParam(raw: string | null): string {
+  if (!raw) return "";
+  const t = raw.trim();
+  if (t.length === 16 && /^[a-f0-9A-F]+$/i.test(t)) {
+    return t.toLowerCase();
+  }
+  return "";
+}
 
 export function SignUpForm() {
+  const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
+  const refFromQuery = useMemo(
+    () => parseRefParam(searchParams.get("ref")),
+    [searchParams],
+  );
+
   const {
     control,
     register,
     handleSubmit,
     setError,
+    setValue,
     trigger,
     formState: { errors, isSubmitting },
-  } = useForm<SignUpInput>({
-    resolver: zodResolver(signUpSchema),
+  } = useForm<SignUpFieldValues, unknown, SignUpInput>({
+    resolver: zodResolver(signUpSchema) as Resolver<SignUpFieldValues, unknown, SignUpInput>,
     defaultValues: {
       name: "",
       email: "",
       password: "",
       location: "",
       interestedInCommenting: false,
+      referrerCode: "",
     },
   });
   const watched = useWatch({ control });
+
+  useEffect(() => {
+    if (refFromQuery) {
+      setValue("referrerCode", refFromQuery, { shouldValidate: false });
+    }
+  }, [refFromQuery, setValue]);
 
   const signUp = useSignUpMutation(setError);
 
@@ -67,6 +91,8 @@ export function SignUpForm() {
   });
 
   const pending = isSubmitting;
+  const hasReferrerPreview =
+    typeof watched.referrerCode === "string" && watched.referrerCode.length > 0;
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-16">
@@ -114,11 +140,7 @@ export function SignUpForm() {
           </ol>
         </CardHeader>
         <CardContent className="space-y-4">
-          <form
-            className="space-y-4"
-            onSubmit={onSubmit}
-            noValidate
-          >
+          <form className="space-y-4" onSubmit={onSubmit} noValidate>
             {errors.root?.message && (
               <p className="text-xs text-destructive" role="alert">
                 {errors.root.message}
@@ -170,6 +192,27 @@ export function SignUpForm() {
                   {errors.password && (
                     <p className="text-xs text-destructive">
                       {String(errors.password.message)}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sign-up-referrer">
+                    Invite code <span className="text-muted-foreground">(optional)</span>
+                  </Label>
+                  <Input
+                    id="sign-up-referrer"
+                    type="text"
+                    inputMode="text"
+                    autoComplete="off"
+                    placeholder="16-character code from a friend"
+                    className="font-mono"
+                    maxLength={16}
+                    aria-invalid={errors.referrerCode ? true : undefined}
+                    {...register("referrerCode")}
+                  />
+                  {errors.referrerCode && (
+                    <p className="text-xs text-destructive">
+                      {String(errors.referrerCode.message)}
                     </p>
                   )}
                 </div>
@@ -266,7 +309,18 @@ export function SignUpForm() {
                       {watched.interestedInCommenting ? "Yes" : "No"}
                     </dd>
                   </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Invite code</dt>
+                    <dd className="font-mono text-foreground break-all">
+                      {hasReferrerPreview ? watched.referrerCode : "—"}
+                    </dd>
+                  </div>
                 </dl>
+                {errors.referrerCode && step === 3 && (
+                  <p className="text-xs text-destructive" role="alert">
+                    {String(errors.referrerCode.message)}
+                  </p>
+                )}
                 <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
                   <Button
                     className="order-2 sm:order-1"

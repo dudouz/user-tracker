@@ -61,6 +61,7 @@ export async function postSignUp(
       password: input.password,
       location: input.location || undefined,
       interestedInCommenting: input.interestedInCommenting === true,
+      ...(input.referrerCode ? { referrerCode: input.referrerCode } : {}),
     }),
   });
   const body = await readJsonOrEmpty(res);

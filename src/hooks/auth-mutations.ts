@@ -13,7 +13,7 @@ import {
 } from "@/lib/api/auth-client";
 import { authKeys } from "@/lib/api/auth-queries";
 import { getSafeCallbackUrl } from "@/lib/safe-callback";
-import type { SignInInput, SignUpInput } from "@/lib/validations/auth";
+import type { SignInInput, SignUpFieldValues, SignUpInput } from "@/lib/validations/auth";
 
 function useInvalidateMeAndRefresh() {
   const queryClient = useQueryClient();
@@ -24,7 +24,7 @@ function useInvalidateMeAndRefresh() {
   };
 }
 
-function applyAuthRequestFormError<T extends SignInInput | SignUpInput>(
+function applyAuthRequestFormError<T extends SignInInput | SignUpFieldValues>(
   error: unknown,
   setError: UseFormSetError<T>,
   messageFallback: string,
@@ -57,7 +57,7 @@ export function useSignInMutation(setError: UseFormSetError<SignInInput>) {
   });
 }
 
-export function useSignUpMutation(setError: UseFormSetError<SignUpInput>) {
+export function useSignUpMutation(setError: UseFormSetError<SignUpFieldValues>) {
   const router = useRouter();
   const invalidate = useInvalidateMeAndRefresh();
   return useMutation({
