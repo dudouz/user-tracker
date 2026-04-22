@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch, type FieldPath, type Resolver } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import { useSignUpMutation } from "@/hooks/auth-mutations";
 import {
   getSignupWizardStepMeta,
   trackClientEvent,
+  type AbandonReason,
   type SignupStep,
   type SignupWizardAdvanceStepKey,
   type SignupWizardStepContext,
@@ -88,12 +89,10 @@ export function SignUpForm() {
     }
   }, [refFromQuery, setValue]);
 
-  useEffect(() => {
-    trackClientEvent({
-      name: "signup_step_viewed",
-      properties: wizardStepContext(step as SignupStep),
-    });
-  }, [step]);
+  const stepRef = useRef<SignupStep>(1);
+  const stepStartedAtRef = useRef<number>(0);
+  const abandonReportedRef = useRef(false);
+  const submitStateRef = useRef({ isPending: false, isSuccess: false });
 
   useEffect(() => {
     if (!refFromQuery || typeof sessionStorage === "undefined") return;
@@ -106,6 +105,50 @@ export function SignUpForm() {
   }, [refFromQuery]);
 
   const signUp = useSignUpMutation(setError);
+
+  useEffect(() => {
+    stepRef.current = step as SignupStep;
+    stepStartedAtRef.current =
+      typeof performance !== "undefined" ? performance.now() : Date.now();
+    trackClientEvent({
+      name: "signup_step_viewed",
+      properties: wizardStepContext(step as SignupStep),
+    });
+  }, [step]);
+
+  useEffect(() => {
+    submitStateRef.current.isPending = signUp.isPending;
+    submitStateRef.current.isSuccess = signUp.isSuccess;
+  }, [signUp.isPending, signUp.isSuccess]);
+
+  useEffect(() => {
+    function reportAbandon(reason: AbandonReason) {
+      if (abandonReportedRef.current) return;
+      if (submitStateRef.current.isPending || submitStateRef.current.isSuccess) return;
+      abandonReportedRef.current = true;
+      const now =
+        typeof performance !== "undefined" ? performance.now() : Date.now();
+      trackClientEvent({
+        name: "signup_wizard_abandoned",
+        properties: {
+          ...wizardStepContext(stepRef.current),
+          reason,
+          time_on_step_ms: Math.max(
+            0,
+            Math.round(now - stepStartedAtRef.current),
+          ),
+        },
+      });
+    }
+    function onPageHide() {
+      reportAbandon("tab_closed");
+    }
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      window.removeEventListener("pagehide", onPageHide);
+      reportAbandon("navigated_away");
+    };
+  }, []);
 
   async function goNext() {
     const names = STEP_FIELDS[step as 1 | 2];

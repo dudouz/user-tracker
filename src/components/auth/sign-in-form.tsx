@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSignInMutation } from "@/hooks/auth-mutations";
+import { trackClientEvent, type AbandonReason } from "@/lib/events";
 import { signInSchema, type SignInInput } from "@/lib/validations/auth";
 
 export function SignInForm() {
@@ -29,6 +31,45 @@ export function SignInForm() {
   });
 
   const signIn = useSignInMutation(setError);
+
+  const abandonReportedRef = useRef(false);
+  const startedAtRef = useRef<number>(0);
+  const submitStateRef = useRef({ isPending: false, isSuccess: false });
+
+  useEffect(() => {
+    submitStateRef.current.isPending = signIn.isPending;
+    submitStateRef.current.isSuccess = signIn.isSuccess;
+  }, [signIn.isPending, signIn.isSuccess]);
+
+  useEffect(() => {
+    startedAtRef.current =
+      typeof performance !== "undefined" ? performance.now() : Date.now();
+    function reportAbandon(reason: AbandonReason) {
+      if (abandonReportedRef.current) return;
+      if (submitStateRef.current.isPending || submitStateRef.current.isSuccess) return;
+      abandonReportedRef.current = true;
+      const now =
+        typeof performance !== "undefined" ? performance.now() : Date.now();
+      trackClientEvent({
+        name: "sign_in_abandoned",
+        properties: {
+          reason,
+          time_on_page_ms: Math.max(
+            0,
+            Math.round(now - startedAtRef.current),
+          ),
+        },
+      });
+    }
+    function onPageHide() {
+      reportAbandon("tab_closed");
+    }
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      window.removeEventListener("pagehide", onPageHide);
+      reportAbandon("navigated_away");
+    };
+  }, []);
 
   const pending = isSubmitting;
 

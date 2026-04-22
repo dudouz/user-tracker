@@ -1,5 +1,7 @@
 export type {
+  AbandonReason,
   AnalyticsEvent,
+  SignInFailureCode,
   SignupStep,
   SignupWizardAdvanceStepKey,
   SignupWizardStepContext,

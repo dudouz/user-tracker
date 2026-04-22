@@ -12,7 +12,7 @@ import {
   postSignUp,
 } from "@/lib/api/auth-client";
 import { authKeys } from "@/lib/api/auth-queries";
-import { trackClientEvent } from "@/lib/events";
+import { trackClientEvent, type SignInFailureCode } from "@/lib/events";
 import { identifyPostHogUser } from "@/lib/posthog/identify-user";
 import { getSafeCallbackUrl } from "@/lib/safe-callback";
 import type { SignInInput, SignUpFieldValues, SignUpInput } from "@/lib/validations/auth";
@@ -39,6 +39,17 @@ function applyAuthRequestFormError<T extends SignInInput | SignUpFieldValues>(
   }
 }
 
+function classifySignInFailure(error: unknown): SignInFailureCode {
+  if (error instanceof AuthRequestError) {
+    if (error.status === 401 || error.status === 400) return "invalid_credentials";
+    if (error.status === 429) return "rate_limited";
+    return "unknown";
+  }
+  // fetch() throws TypeError on network-level failures
+  if (error instanceof TypeError) return "network";
+  return "unknown";
+}
+
 export function useSignInMutation(setError: UseFormSetError<SignInInput>) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -59,6 +70,10 @@ export function useSignInMutation(setError: UseFormSetError<SignInInput>) {
       router.push(next);
     },
     onError: (error) => {
+      trackClientEvent({
+        name: "sign_in_failed",
+        properties: { code: classifySignInFailure(error) },
+      });
       applyAuthRequestFormError(error, setError, "Sign in failed");
     },
   });
