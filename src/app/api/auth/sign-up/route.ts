@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 
 import { createSessionToken } from "@/lib/auth/jwt";
 import { setSessionTokenInCookies } from "@/lib/auth/cookie-store";
-import { trackServerEvent } from "@/lib/events/track-server";
+import { trackServerEvents, type AnalyticsEvent } from "@/lib/events";
 import { db } from "@/lib/db";
 import { referrals, users } from "@/lib/db/schema";
 import { signUpSchema } from "@/lib/validations/auth";
@@ -109,26 +109,19 @@ export async function POST(request: Request) {
       }
       const token = await createSessionToken(row.id, row.email);
       await setSessionTokenInCookies(token);
-      try {
-        await trackServerEvent(
-          {
-            name: "signup_completed",
-            properties: { has_referrer: Boolean(referrer) },
-          },
-          { distinctId: row.id },
-        );
-        if (referrer) {
-          await trackServerEvent(
-            {
-              name: "referral_signup_completed",
-              properties: { referrer_id: referrer.id },
-            },
-            { distinctId: row.id },
-          );
-        }
-      } catch {
-        // non-fatal if PostHog is down or not configured
+      const analyticsEvents: AnalyticsEvent[] = [
+        {
+          name: "signup_completed",
+          properties: { has_referrer: Boolean(referrer) },
+        },
+      ];
+      if (referrer) {
+        analyticsEvents.push({
+          name: "referral_signup_completed",
+          properties: { referrer_id: referrer.id },
+        });
       }
+      await trackServerEvents(analyticsEvents, { distinctId: row.id });
       return NextResponse.json(
         { user: { id: row.id, email: row.email } },
         { status: 201 },

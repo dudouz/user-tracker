@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { AnalyticsEvent } from "@/lib/events/types";
+import type { AnalyticsEvent } from "@/lib/events";
 
 describe("AnalyticsEvent", () => {
   it("narrows by event name", () => {

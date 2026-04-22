@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 import { createSessionToken } from "@/lib/auth/jwt";
 import { setSessionTokenInCookies } from "@/lib/auth/cookie-store";
-import { trackUserActivated } from "@/lib/events/track-server";
+import { trackServerEvents } from "@/lib/events";
 import { db } from "@/lib/db";
 import { referrals, users } from "@/lib/db/schema";
 import { signInSchema } from "@/lib/validations/auth";
@@ -55,13 +55,13 @@ export async function POST(request: Request) {
     )
     .returning({ id: referrals.id });
 
-  for (const row of activated) {
-    try {
-      await trackUserActivated(user.id, row.id);
-    } catch {
-      // Non-fatal if analytics fails
-    }
-  }
+  await trackServerEvents(
+    activated.map((row) => ({
+      name: "user_activated",
+      properties: { referral_id: row.id },
+    })),
+    { distinctId: user.id },
+  );
 
   return NextResponse.json({ user: { id: user.id, email: user.email } });
 }

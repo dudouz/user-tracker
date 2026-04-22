@@ -18,13 +18,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSignUpMutation } from "@/hooks/auth-mutations";
-import { getSignupWizardStepMeta } from "@/lib/events/signup-wizard";
-import { trackClientEvent } from "@/lib/events/track-client";
-import type {
-  SignupStep,
-  SignupWizardAdvanceStepKey,
-  SignupWizardStepContext,
-} from "@/lib/events/types";
+import {
+  getSignupWizardStepMeta,
+  trackClientEvent,
+  type SignupStep,
+  type SignupWizardAdvanceStepKey,
+  type SignupWizardStepContext,
+} from "@/lib/events";
 import { signUpSchema, type SignUpFieldValues, type SignUpInput } from "@/lib/validations/auth";
 
 const REF_OPENED_KEY = "analytics:referral_link_opened";

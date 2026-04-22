@@ -1,20 +1,3 @@
-export const ANALYTICS_EVENT_NAMES = [
-  "signup_step_viewed",
-  "signup_step_completed",
-  "signup_validation_error",
-  "signup_completed",
-  "sign_in_completed",
-  "referral_link_opened",
-  "referral_signup_completed",
-  "gallery_viewed",
-  "photo_viewed",
-  "comment_started",
-  "comment_created",
-  "user_activated",
-] as const;
-
-export type AnalyticsEventName = (typeof ANALYTICS_EVENT_NAMES)[number];
-
 /** Internal UI step index only (not sent on analytics events). */
 export type SignupStep = 1 | 2 | 3;
 
@@ -55,9 +38,3 @@ export type AnalyticsEvent =
       properties: { photo_id: number; content_length_bucket?: string };
     }
   | { name: "user_activated"; properties: { referral_id: string } };
-
-export function eventPropertiesToJson(
-  event: AnalyticsEvent,
-): Record<string, unknown> {
-  return event.properties;
-}

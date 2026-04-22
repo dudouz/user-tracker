@@ -12,8 +12,8 @@ import {
   postSignUp,
 } from "@/lib/api/auth-client";
 import { authKeys } from "@/lib/api/auth-queries";
-import { trackClientEvent } from "@/lib/events/track-client";
-import { identifyPostHogUser, resetPostHogUser } from "@/lib/posthog/identify-user";
+import { trackClientEvent } from "@/lib/events";
+import { identifyPostHogUser } from "@/lib/posthog/identify-user";
 import { getSafeCallbackUrl } from "@/lib/safe-callback";
 import type { SignInInput, SignUpFieldValues, SignUpInput } from "@/lib/validations/auth";
 
@@ -86,7 +86,6 @@ export function useSignOutMutation() {
   return useMutation({
     mutationFn: postSignOut,
     onSuccess: () => {
-      resetPostHogUser();
       void queryClient.invalidateQueries({ queryKey: authKeys.me() });
       router.push("/");
       router.refresh();
