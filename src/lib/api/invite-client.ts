@@ -5,7 +5,7 @@ export class InviteRequestError extends Error {
   constructor(
     message: string,
     public status: number,
-    public body: { error?: string; details?: unknown },
+    public body: { error?: string; code?: string; details?: unknown },
   ) {
     super(message);
     this.name = "InviteRequestError";
@@ -22,10 +22,16 @@ export async function postInviteSendEmail(
   });
   const body = await readJsonOrEmpty(res);
   if (!res.ok) {
+    const errMsg = typeof body.error === "string" ? body.error : "Failed to send invite";
+    const code =
+      typeof (body as { code?: string }).code === "string"
+        ? (body as { code: string }).code
+        : undefined;
+    const display = code ? `${errMsg} (code: ${code})` : errMsg;
     throw new InviteRequestError(
-      typeof body.error === "string" ? body.error : "Failed to send invite",
+      display,
       res.status,
-      body,
+      body as { error?: string; code?: string; details?: unknown },
     );
   }
   return body as { ok: boolean };

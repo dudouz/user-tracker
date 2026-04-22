@@ -1,7 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { resetInviteSendRateLimitForTests, tryConsumeInviteSendSlot } from "@/lib/invite-rate-limit";
-
 const sessionUserId = "550e8400-e29b-41d4-a716-446655440000";
 
 const { getSession } = vi.hoisted(() => ({ getSession: vi.fn() }));
@@ -56,7 +54,6 @@ describe("POST /api/invites/send", () => {
     vi.stubEnv("RESEND_API_KEY", "re_test_key");
     vi.stubEnv("RESEND_FROM_EMAIL", "onboarding@resend.dev");
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://app.example.com");
-    resetInviteSendRateLimitForTests();
   });
 
   afterEach(() => {
@@ -89,16 +86,6 @@ describe("POST /api/invites/send", () => {
     expect(res.status).toBe(404);
   });
 
-  it("returns 429 when the hourly cap is reached", async () => {
-    getSession.mockResolvedValue({ userId: sessionUserId, email: "a@b.co" });
-    selectLimit.mockResolvedValue([referrerRow]);
-    for (let i = 0; i < 5; i += 1) {
-      tryConsumeInviteSendSlot(sessionUserId);
-    }
-    const res = await postSend({ to: "f@x.com" });
-    expect(res.status).toBe(429);
-  });
-
   it("sends an email and returns 200 with invite link to configured base URL", async () => {
     getSession.mockResolvedValue({ userId: sessionUserId, email: "a@b.co" });
     selectLimit.mockResolvedValue([referrerRow]);
@@ -118,14 +105,30 @@ describe("POST /api/invites/send", () => {
     );
   });
 
-  it("returns 502 when Resend returns an error", async () => {
+  it("returns 400 with Resend error message and code when Resend errors", async () => {
     getSession.mockResolvedValue({ userId: sessionUserId, email: "a@b.co" });
     selectLimit.mockResolvedValue([referrerRow]);
     emailSend.mockResolvedValueOnce({
       data: null,
-      error: { message: "Resend error" } as { message: string },
+      error: {
+        message: "The from field must be a valid address",
+        name: "invalid_from_address",
+      } as { message: string; name: string },
     });
     const res = await postSend({ to: "friend@x.com" });
+    expect(res.status).toBe(400);
+    const json = (await res.json()) as { error?: string; code?: string };
+    expect(json.code).toBe("invalid_from_address");
+    expect(json.error).toBe("The from field must be a valid address");
+  });
+
+  it("returns 502 with network_error code on SDK throw", async () => {
+    getSession.mockResolvedValue({ userId: sessionUserId, email: "a@b.co" });
+    selectLimit.mockResolvedValue([referrerRow]);
+    emailSend.mockRejectedValueOnce(new Error("fetch failed"));
+    const res = await postSend({ to: "friend@x.com" });
     expect(res.status).toBe(502);
+    const json = (await res.json()) as { error?: string; code?: string };
+    expect(json.code).toBe("network_error");
   });
 });

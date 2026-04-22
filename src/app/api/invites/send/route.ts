@@ -6,18 +6,7 @@ import { getAppBaseUrl } from "@/lib/app-url";
 import { getSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { tryConsumeInviteSendSlot } from "@/lib/invite-rate-limit";
 import { inviteSendSchema } from "@/lib/validations/auth";
-
-function getResend() {
-  const key = process.env.RESEND_API_KEY?.trim();
-  if (!key) return null;
-  return new Resend(key);
-}
-
-function getFromAddress(): string {
-  return process.env.RESEND_FROM_EMAIL?.trim() || "onboarding@resend.dev";
-}
 
 export async function POST(request: Request) {
   const session = await getSession();
@@ -25,13 +14,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const resend = getResend();
-  if (!resend) {
+  const key = process.env.RESEND_API_KEY?.trim();
+  if (!key) {
     return NextResponse.json(
-      { error: "Email sending is not configured (set RESEND_API_KEY on the server)." },
+      { error: "RESEND_API_KEY is not set on the server." },
       { status: 503 },
     );
   }
+  const from = process.env.RESEND_FROM_EMAIL?.trim() || "onboarding@resend.dev";
 
   let body: unknown;
   try {
@@ -59,29 +49,42 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  if (!tryConsumeInviteSendSlot(session.userId)) {
-    return NextResponse.json(
-      { error: "Too many invite emails. Try again in about an hour." },
-      { status: 429 },
-    );
-  }
-
   const base = getAppBaseUrl();
   const signUpUrl = new URL("/sign-up", base);
   signUpUrl.searchParams.set("ref", row.referralCode);
   const link = signUpUrl.toString();
-  const from = getFromAddress();
 
-  const { error } = await resend.emails.send({
-    from,
-    to: [to],
-    subject: `${row.name} invited you`,
-    text: `Join with this link:\n\n${link}\n\nOr open sign up and enter invite code: ${row.referralCode}`,
-  });
+  try {
+    const resend = new Resend(key);
+    const { error } = await resend.emails.send({
+      from,
+      to: [to],
+      subject: `${row.name} invited you`,
+      text: `Join with this link:\n\n${link}\n\nOr open sign up and enter invite code: ${row.referralCode}`,
+      html: `<p>Join with this link:</p><p><a href="${link}">${link}</a></p><p>Or open sign up and enter invite code: <code>${row.referralCode}</code></p>`,
+    });
 
-  if (error) {
+    if (error) {
+      const { name, message } = error as { name?: string; message?: string };
+      console.error("[invites/send] Resend error", {
+        code: name,
+        message,
+        from,
+        toDomain: to.split("@")[1],
+      });
+      return NextResponse.json(
+        { error: message || "Failed to send email", code: name },
+        { status: 400 },
+      );
+    }
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Failed to send email";
+    console.error("[invites/send] SDK/network error", {
+      message,
+      cause: e instanceof Error && "cause" in e ? (e as { cause?: unknown }).cause : undefined,
+    });
     return NextResponse.json(
-      { error: error.message || "Failed to send email" },
+      { error: message, code: "network_error" },
       { status: 502 },
     );
   }
