@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { useAuthUser } from "@/hooks/use-auth-user";
 
 const navLinkClass =
   "text-xs/relaxed text-muted-foreground transition-colors hover:text-foreground";
@@ -14,7 +17,10 @@ interface AppNavbarProps {
   user: AppNavbarUser | null;
 }
 
-export function AppNavbar({ user }: AppNavbarProps) {
+export function AppNavbar({ user: initialUser }: AppNavbarProps) {
+  const { data } = useAuthUser({ user: initialUser });
+  const user = data?.user ?? null;
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-foreground/10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="mx-auto flex h-12 w-full max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
