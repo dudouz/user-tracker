@@ -6,7 +6,6 @@ export type {
   SignupWizardStepKey,
 } from "@/lib/events/types";
 export { trackClientEvent } from "@/lib/events/track-client";
-export { trackServerEvent, trackServerEvents } from "@/lib/events/track-server";
 export {
   getSignupWizardStepMeta,
   SIGNUP_WIZARD_STEPS,

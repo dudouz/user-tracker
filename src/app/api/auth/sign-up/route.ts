@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 
 import { createSessionToken } from "@/lib/auth/jwt";
 import { setSessionTokenInCookies } from "@/lib/auth/cookie-store";
-import { trackServerEvents, type AnalyticsEvent } from "@/lib/events";
+import { trackServerEvents, type AnalyticsEvent } from "@/lib/events/server";
 import { db } from "@/lib/db";
 import { referrals, users } from "@/lib/db/schema";
 import { signUpSchema } from "@/lib/validations/auth";

@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 import { createSessionToken } from "@/lib/auth/jwt";
 import { setSessionTokenInCookies } from "@/lib/auth/cookie-store";
-import { trackServerEvents } from "@/lib/events";
+import { trackServerEvents } from "@/lib/events/server";
 import { db } from "@/lib/db";
 import { referrals, users } from "@/lib/db/schema";
 import { signInSchema } from "@/lib/validations/auth";
