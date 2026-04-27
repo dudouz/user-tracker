@@ -1,5 +1,3 @@
-import "server-only";
-
 import type { AnalyticsEvent } from "@/lib/events/types";
 import { isPostHogServerEnabled } from "@/lib/posthog/config";
 import { getServerPostHog } from "@/lib/posthog/posthog-server";
