@@ -1,17 +1,7 @@
-/** Internal UI step index only (not sent on analytics events). */
-export type SignupStep = 1 | 2 | 3;
-
-export type SignupWizardStepKey =
-  | "account"
-  | "location_interest"
-  | "confirm";
-
-export type SignupWizardAdvanceStepKey = "account" | "location_interest";
-
-export type SignupWizardStepContext = {
-  step_key: SignupWizardStepKey;
-  step_label: string;
-};
+import type {
+  SignupWizardAdvanceStepKey,
+  SignupWizardStepContext,
+} from "@/lib/events/signup-wizard";
 
 /** Reasons a user left a flow without completing it. */
 export type AbandonReason = "navigated_away" | "tab_closed";

@@ -2,13 +2,15 @@ export type {
   AbandonReason,
   AnalyticsEvent,
   SignInFailureCode,
-  SignupStep,
+} from "@/lib/events/types";
+export type {
   SignupWizardAdvanceStepKey,
+  SignupWizardStep,
   SignupWizardStepContext,
   SignupWizardStepKey,
-} from "@/lib/events/types";
-export { trackClientEvent } from "@/lib/events/track-client";
+} from "@/lib/events/signup-wizard";
 export {
-  getSignupWizardStepMeta,
+  SIGNUP_STEP_TOTAL,
   SIGNUP_WIZARD_STEPS,
 } from "@/lib/events/signup-wizard";
+export { trackClientEvent } from "@/lib/events/track-client";

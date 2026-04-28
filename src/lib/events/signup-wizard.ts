@@ -1,29 +1,26 @@
-import type { SignupStep, SignupWizardStepKey } from "@/lib/events/types";
-
 /**
- * Descriptive step metadata. UI state still uses 1–3; analytics use `key` / `label` only.
+ * Single source of truth for the sign-up wizard.
+ *
+ * Each entry is shaped exactly like the analytics step context, so it can be
+ * spread straight into a `trackClientEvent(...)` call with no translation
+ * layer. The total step count and analytics types are all derived from this
+ * tuple — no other module should hard-code step keys, labels, or counts.
  */
-export const SIGNUP_WIZARD_STEPS: Record<
-  SignupStep,
-  { key: SignupWizardStepKey; label: string }
-> = {
-  1: {
-    key: "account",
-    label: "Account & invite",
-  },
-  2: {
-    key: "location_interest",
-    label: "Location & interest",
-  },
-  3: {
-    key: "confirm",
-    label: "Review & create account",
-  },
-};
+export const SIGNUP_WIZARD_STEPS = [
+  { step_key: "account", step_label: "Account & invite" },
+  { step_key: "location_interest", step_label: "Location & interest" },
+  { step_key: "confirm", step_label: "Review & create account" },
+] as const;
 
-export function getSignupWizardStepMeta(
-  step: SignupStep,
-): { key: SignupWizardStepKey; label: string; order: number } {
-  const { key, label } = SIGNUP_WIZARD_STEPS[step];
-  return { key, label, order: step };
-}
+export type SignupWizardStep = (typeof SIGNUP_WIZARD_STEPS)[number];
+export type SignupWizardStepKey = SignupWizardStep["step_key"];
+
+/** Steps that advance the wizard — every step except the terminal `confirm`. */
+export type SignupWizardAdvanceStepKey = Exclude<SignupWizardStepKey, "confirm">;
+
+export const SIGNUP_STEP_TOTAL = SIGNUP_WIZARD_STEPS.length;
+
+export type SignupWizardStepContext = {
+  step_key: SignupWizardStepKey;
+  step_label: string;
+};
