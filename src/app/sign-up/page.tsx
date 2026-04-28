@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 
 import { SignUpForm } from "@/components/auth/sign-up-form";
 
@@ -9,25 +8,33 @@ export const metadata: Metadata = {
   alternates: { canonical: "/sign-up" },
 };
 
-export default function SignUpPage() {
+type SignUpPageProps = {
+  searchParams: Promise<{ ref?: string | string[] }>;
+};
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function parseRefParam(raw: string | undefined): string {
+  if (!raw) return "";
+  const t = raw.trim();
+  if (t.length === 16 && /^[a-f0-9A-F]+$/i.test(t)) {
+    return t.toLowerCase();
+  }
+  return "";
+}
+
+export default async function SignUpPage({ searchParams }: SignUpPageProps) {
+  // Read query params from the server side
+  const referrerCode = parseRefParam(firstParam((await searchParams).ref));
+
   return (
     <main
       id="main-content"
       className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-16"
     >
-      <Suspense
-        fallback={
-          <p
-            className="text-sm text-muted-foreground"
-            role="status"
-            aria-live="polite"
-          >
-            Loading sign up…
-          </p>
-        }
-      >
-        <SignUpForm />
-      </Suspense>
+      <SignUpForm initialReferrerCode={referrerCode} />
     </main>
   );
 }
