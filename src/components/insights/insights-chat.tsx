@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { useInsightsConnectMutation } from "@/hooks/mutations";
 import { cn } from "@/lib/utils";
 
 const SUGGESTED_PROMPTS = [
@@ -25,11 +26,23 @@ type ConnectionState =
   | { status: "error"; message: string };
 
 export function InsightsChat() {
-  const [connection, setConnection] = useState<ConnectionState>({
-    status: "unknown",
-  });
   const [input, setInput] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
+
+  const {
+    mutate: checkConnection,
+    data: connectionData,
+    error: connectionError,
+    isIdle,
+    isPending,
+  } = useInsightsConnectMutation();
+
+  const connection = deriveConnection({
+    isIdle,
+    isPending,
+    data: connectionData,
+    error: connectionError,
+  });
 
   const { messages, sendMessage, status, error, stop } = useChat({
     transport: new DefaultChatTransport({ api: "/api/insights/chat" }),
@@ -50,7 +63,7 @@ export function InsightsChat() {
       url.searchParams.delete("error");
       window.history.replaceState({}, "", url.toString());
     }
-  }, []);
+  }, [checkConnection]);
 
   useEffect(() => {
     listRef.current?.scrollTo({
@@ -59,31 +72,8 @@ export function InsightsChat() {
     });
   }, [messages]);
 
-  async function checkConnection() {
-    setConnection({ status: "checking" });
-    try {
-      const res = await fetch("/api/insights/connect", { method: "POST" });
-      const data = (await res.json()) as {
-        connected?: boolean;
-        authUrl?: string;
-        error?: string;
-      };
-      if (data.connected) {
-        setConnection({ status: "connected" });
-      } else if (data.authUrl) {
-        setConnection({ status: "needs_auth", authUrl: data.authUrl });
-      } else {
-        setConnection({
-          status: "error",
-          message: data.error ?? "Could not reach Arcade gateway.",
-        });
-      }
-    } catch (e) {
-      setConnection({
-        status: "error",
-        message: e instanceof Error ? e.message : "Unknown error",
-      });
-    }
+  function retryConnection() {
+    checkConnection();
   }
 
   function handleSubmit(e?: React.FormEvent) {
@@ -100,10 +90,10 @@ export function InsightsChat() {
   return (
     <div className="flex min-h-[60vh] flex-col gap-4">
       {connection.status === "needs_auth" && (
-        <ConnectBanner authUrl={connection.authUrl} onRetry={checkConnection} />
+        <ConnectBanner authUrl={connection.authUrl} onRetry={retryConnection} />
       )}
       {connection.status === "error" && (
-        <ErrorBanner message={connection.message} onRetry={checkConnection} />
+        <ErrorBanner message={connection.message} onRetry={retryConnection} />
       )}
 
       <Card className="flex-1">
@@ -325,4 +315,28 @@ function MessagePart({
     );
   }
   return null;
+}
+
+function deriveConnection({
+  isIdle,
+  isPending,
+  data,
+  error,
+}: {
+  isIdle: boolean;
+  isPending: boolean;
+  data?: { connected: boolean; authUrl?: string; error?: string };
+  error: Error | null;
+}): ConnectionState {
+  if (isIdle) return { status: "unknown" };
+  if (isPending) return { status: "checking" };
+  if (error) {
+    return { status: "error", message: error.message || "Unknown error" };
+  }
+  if (data?.connected) return { status: "connected" };
+  if (data?.authUrl) return { status: "needs_auth", authUrl: data.authUrl };
+  return {
+    status: "error",
+    message: data?.error ?? "Could not reach Arcade gateway.",
+  };
 }

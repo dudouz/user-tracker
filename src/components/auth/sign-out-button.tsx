@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
-import { useSignOutMutation } from "@/hooks/auth-mutations";
+import { useSignOutMutation } from "@/hooks/mutations";
 import { signOutFormSchema, type SignOutFormInput } from "@/lib/validations/auth";
 
 export function SignOutButton() {
