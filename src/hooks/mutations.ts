@@ -12,10 +12,27 @@ import {
   postSignUp,
 } from "@/lib/api/auth-client";
 import { authKeys } from "@/lib/api/auth-queries";
+import {
+  postInsightsConnect,
+  type ConnectInsightsResponse,
+} from "@/lib/api/insights-client";
+import {
+  InviteRequestError,
+  postInviteSendEmail,
+} from "@/lib/api/invite-client";
 import { trackClientEvent, type SignInFailureCode } from "@/lib/events";
 import { identifyPostHogUser } from "@/lib/posthog/identify-user";
 import { getSafeCallbackUrl } from "@/lib/safe-callback";
-import type { SignInInput, SignUpFieldValues, SignUpInput } from "@/lib/validations/auth";
+import type {
+  InviteSendInput,
+  SignInInput,
+  SignUpFieldValues,
+  SignUpInput,
+} from "@/lib/validations/auth";
+
+// ---------------------------------------------------------------------------
+// Shared helpers
+// ---------------------------------------------------------------------------
 
 function useInvalidateMeAndRefresh() {
   const queryClient = useQueryClient();
@@ -49,6 +66,10 @@ function classifySignInFailure(error: unknown): SignInFailureCode {
   if (error instanceof TypeError) return "network";
   return "unknown";
 }
+
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
 
 export function useSignInMutation(setError: UseFormSetError<SignInInput>) {
   const searchParams = useSearchParams();
@@ -108,5 +129,37 @@ export function useSignOutMutation() {
     onError: () => {
       toast.error("Could not sign out");
     },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Invites
+// ---------------------------------------------------------------------------
+
+export function useSendInviteEmailMutation() {
+  return useMutation({
+    mutationFn: (input: InviteSendInput) => postInviteSendEmail(input),
+    onSuccess: () => {
+      toast.success("Invite sent");
+    },
+    onError: (error: unknown) => {
+      const message =
+        error instanceof InviteRequestError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Failed to send";
+      toast.error(message);
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Insights / Arcade gateway
+// ---------------------------------------------------------------------------
+
+export function useInsightsConnectMutation() {
+  return useMutation<ConnectInsightsResponse>({
+    mutationFn: postInsightsConnect,
   });
 }
