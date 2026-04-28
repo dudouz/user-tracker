@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSignInMutation } from "@/hooks/auth-mutations";
+import { useSignInMutation } from "@/hooks/mutations";
 import { trackClientEvent, type AbandonReason } from "@/lib/events";
 import { signInSchema, type SignInInput } from "@/lib/validations/auth";
 
