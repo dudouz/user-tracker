@@ -114,9 +114,12 @@ export function InviteFriendsPanel({
         <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
           <Input
             id="invite-recipient"
-            type="email"
-            name="inviteRecipient"
+            type="text"
+            inputMode="email"
             autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
             data-1p-ignore="true"
             data-bwignore="true"
             data-form-type="other"
