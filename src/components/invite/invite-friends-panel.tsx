@@ -1,16 +1,13 @@
 "use client";
 
-import type { FormEvent } from "react";
+import type { KeyboardEvent } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  InviteRequestError,
-  postInviteSendEmail,
-} from "@/lib/api/invite-client";
+import { useSendInviteEmailMutation } from "@/hooks/mutations";
 
 export interface InviteFriendsPanelProps {
   baseUrl: string;
@@ -22,7 +19,8 @@ export function InviteFriendsPanel({
   referralCode,
 }: InviteFriendsPanelProps) {
   const [email, setEmail] = useState("");
-  const [sending, setSending] = useState(false);
+  const { mutate: sendInvite, isPending: isSending } =
+    useSendInviteEmailMutation();
   const inviteUrl = (() => {
     try {
       const u = new URL("/sign-up", baseUrl);
@@ -42,28 +40,21 @@ export function InviteFriendsPanel({
     }
   }
 
-  async function sendEmail(e: FormEvent) {
-    e.preventDefault();
-    if (!email.trim()) {
+  function sendEmail() {
+    if (isSending) return;
+    const to = email.trim();
+    if (!to) {
       toast.error("Enter a recipient email");
       return;
     }
-    setSending(true);
-    try {
-      await postInviteSendEmail({ to: email.trim() });
-      toast.success("Invite sent");
-      setEmail("");
-    } catch (err) {
-      const message =
-        err instanceof InviteRequestError
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : "Failed to send";
-      toast.error(message);
-    } finally {
-      setSending(false);
-    }
+    sendInvite(
+      { to },
+      {
+        onSuccess: () => {
+          setEmail("");
+        },
+      },
+    );
   }
 
   return (
@@ -116,28 +107,41 @@ export function InviteFriendsPanel({
           the link above.
         </p>
       </div>
-      <form className="space-y-2" onSubmit={sendEmail}>
-        <Label htmlFor="invite-email">Email invite to a friend (optional)</Label>
+      <div className="space-y-2" data-form-type="other">
+        <Label htmlFor="invite-recipient">
+          Email invite to a friend (optional)
+        </Label>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
           <Input
-            id="invite-email"
+            id="invite-recipient"
             type="email"
-            name="to"
+            name="inviteRecipient"
             autoComplete="off"
+            data-1p-ignore="true"
+            data-bwignore="true"
+            data-form-type="other"
+            data-lpignore="true"
             placeholder="friend@example.com"
             value={email}
             onChange={(ev) => {
               setEmail(ev.target.value);
             }}
-            disabled={sending}
+            onKeyDown={(ev: KeyboardEvent<HTMLInputElement>) => {
+              if (ev.key === "Enter") {
+                ev.preventDefault();
+                sendEmail();
+              }
+            }}
+            disabled={isSending}
           />
           <Button
             className="shrink-0 sm:min-w-28"
-            type="submit"
-            disabled={sending}
-            aria-busy={sending}
+            type="button"
+            disabled={isSending}
+            aria-busy={isSending}
+            onClick={sendEmail}
           >
-            {sending ? (
+            {isSending ? (
               <>
                 <span aria-hidden>Sending…</span>
                 <span className="sr-only">Sending invite, please wait</span>
@@ -151,7 +155,7 @@ export function InviteFriendsPanel({
           Uses Resend when <code className="font-mono">RESEND_API_KEY</code> is
           set. Otherwise the send action shows an error from the server.
         </p>
-      </form>
+      </div>
     </div>
   );
 }
