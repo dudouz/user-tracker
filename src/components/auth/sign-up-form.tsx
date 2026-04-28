@@ -2,8 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 
 import {
@@ -56,25 +55,15 @@ const STEP_HEADINGS: Record<
   },
 };
 
-function parseRefParam(raw: string | null): string {
-  if (!raw) return "";
-  const t = raw.trim();
-  if (t.length === 16 && /^[a-f0-9A-F]+$/i.test(t)) {
-    return t.toLowerCase();
-  }
-  return "";
-}
+type SignUpFormProps = {
+  initialReferrerCode?: string;
+};
 
-export function SignUpForm() {
-  const searchParams = useSearchParams();
+export function SignUpForm({ initialReferrerCode = "" }: SignUpFormProps) {
   const [activeStep, setActiveStep] = useState<SignupWizardStep>(
     SIGNUP_WIZARD_STEPS[0],
   );
   const activeStepNumber = SIGNUP_WIZARD_STEPS.indexOf(activeStep) + 1;
-  const refFromQuery = useMemo(
-    () => parseRefParam(searchParams.get("ref")),
-    [searchParams],
-  );
 
   const form = useForm<SignUpFieldValues, unknown, SignUpInput>({
     resolver: zodResolver(signUpSchema) as Resolver<
@@ -88,26 +77,26 @@ export function SignUpForm() {
       password: "",
       location: "",
       interestedInCommenting: false,
-      referrerCode: "",
+      referrerCode: initialReferrerCode,
     },
   });
   const { setError, setValue } = form;
 
   useEffect(() => {
-    if (refFromQuery) {
-      setValue("referrerCode", refFromQuery, { shouldValidate: false });
+    if (initialReferrerCode) {
+      setValue("referrerCode", initialReferrerCode, { shouldValidate: false });
     }
-  }, [refFromQuery, setValue]);
+  }, [initialReferrerCode, setValue]);
 
   useEffect(() => {
-    if (!refFromQuery || typeof sessionStorage === "undefined") return;
+    if (!initialReferrerCode || typeof sessionStorage === "undefined") return;
     if (sessionStorage.getItem(REF_OPENED_KEY) === "1") return;
     sessionStorage.setItem(REF_OPENED_KEY, "1");
     trackClientEvent({
       name: "referral_link_opened",
       properties: { ref_present: true },
     });
-  }, [refFromQuery]);
+  }, [initialReferrerCode]);
 
   const signUp = useSignUpMutation(setError);
 

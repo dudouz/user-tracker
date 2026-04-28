@@ -20,7 +20,11 @@ import { useSignInMutation } from "@/hooks/mutations";
 import { trackClientEvent, type AbandonReason } from "@/lib/events";
 import { signInSchema, type SignInInput } from "@/lib/validations/auth";
 
-export function SignInForm() {
+type SignInFormProps = {
+  callbackUrl?: string;
+};
+
+export function SignInForm({ callbackUrl }: SignInFormProps) {
   const {
     register,
     handleSubmit,
@@ -30,7 +34,7 @@ export function SignInForm() {
     resolver: zodResolver(signInSchema),
   });
 
-  const signIn = useSignInMutation(setError);
+  const signIn = useSignInMutation(setError, callbackUrl);
 
   const abandonReportedRef = useRef(false);
   const startedAtRef = useRef<number>(0);
