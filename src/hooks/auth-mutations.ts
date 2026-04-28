@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import type { UseFormSetError } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -50,8 +50,10 @@ function classifySignInFailure(error: unknown): SignInFailureCode {
   return "unknown";
 }
 
-export function useSignInMutation(setError: UseFormSetError<SignInInput>) {
-  const searchParams = useSearchParams();
+export function useSignInMutation(
+  setError: UseFormSetError<SignInInput>,
+  callbackUrl?: string,
+) {
   const router = useRouter();
   const invalidate = useInvalidateMeAndRefresh();
   return useMutation({
@@ -63,10 +65,7 @@ export function useSignInMutation(setError: UseFormSetError<SignInInput>) {
         properties: { method: "password" },
       });
       invalidate();
-      const next = getSafeCallbackUrl(
-        searchParams.get("callbackUrl"),
-        "/dashboard",
-      );
+      const next = getSafeCallbackUrl(callbackUrl, "/dashboard");
       router.push(next);
     },
     onError: (error) => {

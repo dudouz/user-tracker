@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 
 import { SignInForm } from "@/components/auth/sign-in-form";
 
@@ -9,25 +8,23 @@ export const metadata: Metadata = {
   alternates: { canonical: "/sign-in" },
 };
 
-export default function SignInPage() {
+type SignInPageProps = {
+  searchParams: Promise<{ callbackUrl?: string | string[] }>;
+};
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function SignInPage({ searchParams }: SignInPageProps) {
+  const callbackUrl = firstParam((await searchParams).callbackUrl);
+
   return (
     <main
       id="main-content"
       className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-16"
     >
-      <Suspense
-        fallback={
-          <p
-            className="text-sm text-muted-foreground"
-            role="status"
-            aria-live="polite"
-          >
-            Loading sign-in…
-          </p>
-        }
-      >
-        <SignInForm />
-      </Suspense>
+      <SignInForm callbackUrl={callbackUrl} />
     </main>
   );
 }

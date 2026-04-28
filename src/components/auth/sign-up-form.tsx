@@ -2,8 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch, type FieldPath, type Resolver } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
@@ -38,27 +37,17 @@ const STEP_FIELDS = {
 
 const STEP_TOTAL = 3;
 
-function parseRefParam(raw: string | null): string {
-  if (!raw) return "";
-  const t = raw.trim();
-  if (t.length === 16 && /^[a-f0-9A-F]+$/i.test(t)) {
-    return t.toLowerCase();
-  }
-  return "";
-}
-
 function wizardStepContext(n: SignupStep): SignupWizardStepContext {
   const m = getSignupWizardStepMeta(n);
   return { step_key: m.key, step_label: m.label };
 }
 
-export function SignUpForm() {
-  const searchParams = useSearchParams();
+type SignUpFormProps = {
+  initialReferrerCode?: string;
+};
+
+export function SignUpForm({ initialReferrerCode = "" }: SignUpFormProps) {
   const [step, setStep] = useState(1);
-  const refFromQuery = useMemo(
-    () => parseRefParam(searchParams.get("ref")),
-    [searchParams],
-  );
 
   const {
     control,
@@ -78,16 +67,16 @@ export function SignUpForm() {
       password: "",
       location: "",
       interestedInCommenting: false,
-      referrerCode: "",
+      referrerCode: initialReferrerCode,
     },
   });
   const watched = useWatch({ control });
 
   useEffect(() => {
-    if (refFromQuery) {
-      setValue("referrerCode", refFromQuery, { shouldValidate: false });
+    if (initialReferrerCode) {
+      setValue("referrerCode", initialReferrerCode, { shouldValidate: false });
     }
-  }, [refFromQuery, setValue]);
+  }, [initialReferrerCode, setValue]);
 
   const stepRef = useRef<SignupStep>(1);
   const stepStartedAtRef = useRef<number>(0);
@@ -95,14 +84,14 @@ export function SignUpForm() {
   const submitStateRef = useRef({ isPending: false, isSuccess: false });
 
   useEffect(() => {
-    if (!refFromQuery || typeof sessionStorage === "undefined") return;
+    if (!initialReferrerCode || typeof sessionStorage === "undefined") return;
     if (sessionStorage.getItem(REF_OPENED_KEY) === "1") return;
     sessionStorage.setItem(REF_OPENED_KEY, "1");
     trackClientEvent({
       name: "referral_link_opened",
       properties: { ref_present: true },
     });
-  }, [refFromQuery]);
+  }, [initialReferrerCode]);
 
   const signUp = useSignUpMutation(setError);
 
