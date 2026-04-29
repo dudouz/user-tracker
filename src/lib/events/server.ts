@@ -1,8 +1,7 @@
+export type { AnalyticsEvent } from "@/lib/events/types";
 export type {
-  AnalyticsEvent,
-  SignupStep,
   SignupWizardAdvanceStepKey,
   SignupWizardStepContext,
   SignupWizardStepKey,
-} from "@/lib/events/types";
+} from "@/lib/events/signup-wizard";
 export { trackServerEvent, trackServerEvents } from "@/lib/events/track-server";
